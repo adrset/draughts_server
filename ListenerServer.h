@@ -8,33 +8,34 @@
 #include <string.h> // memset()
 #include <arpa/inet.h> // inet_pton()
 #include <sys/socket.h>
+#include <vector>
 #include "Entity.h"
-namespace Network{
+namespace Network {
 
-	typedef struct data{
-		bool empty;
-		char*  response;
-		size_t length;
-		data(bool e = true, char* r = nullptr, size_t l = 0) : empty(e), response(r), length(l) {};
-	}data;
-	class ListenerServer{
-	public:	
-		ListenerServer();
-		data listen(Entity* e);
-		void close();
+typedef struct data {
+    bool empty;
+    char*  response;
+    size_t length;
+    data(bool e = true, char* r = nullptr, size_t l = 0) : empty(e), response(r), length(l) {};
+} data;
+class ListenerServer {
+    public:
+        ListenerServer();
+        void listen(std::vector<Entity*>& rooms);
+        void close();
 
-	private:
-		unsigned int m_numClients = 0;
-		fd_set m_master;   // główna lista deskryptorów plików
-		fd_set m_read_fds; // pomocnicza lista deskryptorów dla select()
-		struct sockaddr_in m_server;
-		int m_socket_;
-		int m_activity;
-		char m_buffer[ 4096 ] = { };
-		char m_resp[ 4096 ] = { };
-		socklen_t m_len;
-		struct sockaddr_in m_client;
-	};
+    private:
+        unsigned int m_numClients = 0;
+        fd_set m_master;   // główna lista deskryptorów plików
+        fd_set m_read_fds; // pomocnicza lista deskryptorów dla select()
+        struct sockaddr_in m_server;
+        int m_socket_;
+        int m_activity;
+        char m_buffer[ 4096 ] = { };
+        char m_resp[ 4096 ] = { };
+        socklen_t m_len;
+        struct sockaddr_in m_client;
+};
 
 
 }
