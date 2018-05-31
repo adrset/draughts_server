@@ -75,12 +75,15 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
             exit( 4 );
         }
         strcpy(m_resp, m_buffer);
-
+        char buffer_ip[ 128 ] = { };
+        strcpy(buffer_ip, inet_ntop( AF_INET, & m_client.sin_addr, buffer_ip, sizeof( buffer_ip )));
+        //printf( "|m_client ip: %s port: %d|\n", inet_ntop( AF_INET, & m_client.sin_addr, m_buffer_ip, sizeof( m_buffer_ip ) ), ntohs( m_client.sin_port ) );
         // first two checks happen before room specific code
         if(strncmp(m_buffer, "GET_SID",7) == 0) {
+            m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip)));
+            resp = std::to_string(m_clients.size());
 
-            resp = std::to_string(++m_numClients);
-            std::cout<<"m_client registered with ID:"<<m_numClients<<std::endl;
+            std::cout<<"m_client registered with ID:"<<m_clients.size()<<std::endl;
 
         } else if(strncmp(m_buffer, "CREATE_ROOM",11) == 0) {
 
@@ -157,10 +160,10 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
 
         } else {
             if(strncmp(m_buffer, "GET_BOARD",9) == 0) {
-				str<<m_buffer;
+                str<<m_buffer;
                 str>>tmp;
                 str>>tmp;
-                
+
                 Entity *e = nullptr;
                 for(auto* it: rooms) {
                     if(!tmp.compare(it->getName())) {
@@ -210,13 +213,17 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
                 if(e != nullptr) {
 
 
+                    std::string tmp2(buffer_ip);
+                    //std::cout<<"User with ID: "<<data[0]<<" IP: "<<tmp2<<" issued "<<tmp<<" "<<data[1]<<" "<<data[2]<<" "<<data[3]<<" "<<data[4]<<std::endl;
+                    if(!tmp2.compare(m_clients[data[0]-1].name)) {
+                        if (e->checkMove(data[1]-1,data[2]-1,data[3]-1,data[4]-1) ) {
+                            e->changeCurrentPlayer();
+                            std::cout<<"Changing player.(ROOM: "<<tmp<<" )"<<std::endl;
 
-                    std::cout<<"User with ID: "<<data[0]<<" issued "<<tmp<<" "<<data[1]<<" "<<data[2]<<" "<<data[3]<<" "<<data[4]<<std::endl;
-                    if (e->checkMove(data[1]-1,data[2]-1,data[3]-1,data[4]-1) ) {
-                        e->changeCurrentPlayer();
-                        std::cout<<"Changing player..."<<std::endl;
-
-                    }
+                        }
+                    }else{
+						 std::cout<<"But is not allowed to play in this room."<<std::endl;
+					}
                 }
             }
         }

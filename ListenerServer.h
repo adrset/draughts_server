@@ -18,6 +18,12 @@ typedef struct data {
     size_t length;
     data(bool e = true, char* r = nullptr, size_t l = 0) : empty(e), response(r), length(l) {};
 } data;
+
+typedef struct client {
+    unsigned int id;
+    std::string name;
+    client(unsigned int id, std::string name): id(id), name(name){};
+} client;
 class ListenerServer {
     public:
         ListenerServer();
@@ -25,7 +31,7 @@ class ListenerServer {
         void close();
 
     private:
-        unsigned int m_numClients = 0;
+		std::vector<client> m_clients;
         fd_set m_master;   // główna lista deskryptorów plików
         fd_set m_read_fds; // pomocnicza lista deskryptorów dla select()
         struct sockaddr_in m_server;
