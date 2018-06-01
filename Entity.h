@@ -58,7 +58,7 @@ class Entity {
         bool checkMoveBlack(int, int, int, int);
         bool checkMoveBlackDame(int, int, int, int);
 
-        bool checkMove(int, int, int, int);
+        bool checkMove(int, int, int, int, int);
 
 };
 #endif

@@ -177,13 +177,16 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
 
 
                     int** a = e->getBoardData();
-
+					if(e->scoreBoard()){
                     for(int ii=0; ii<8; ii++) {
                         for(int jj=0; jj<8; jj++) {
                             resp+=std::to_string((unsigned int)(a[jj][ii]+2)) + ' ';
                         }
                     }
-
+				}else{
+						resp = "END";
+					
+				}
 
                 } else {
                     resp = "NOK " + tmp;
@@ -216,7 +219,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
                     std::string tmp2(buffer_ip);
                     //std::cout<<"User with ID: "<<data[0]<<" IP: "<<tmp2<<" issued "<<tmp<<" "<<data[1]<<" "<<data[2]<<" "<<data[3]<<" "<<data[4]<<std::endl;
                     if(!tmp2.compare(m_clients[data[0]-1].name)) {
-                        if (e->checkMove(data[1]-1,data[2]-1,data[3]-1,data[4]-1) ) {
+                        if (e->checkMove(data[1]-1,data[2]-1,data[3]-1,data[4]-1, data[0]) ) {
                             e->changeCurrentPlayer();
                             std::cout<<"Changing player.(ROOM: "<<tmp<<" )"<<std::endl;
 

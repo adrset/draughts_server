@@ -383,12 +383,12 @@ bool Entity::checkBeatingBlack(int x1, int y1) {
 }
 
 bool Entity::addPlayer(int id) {
-	int size = players.size();
+    int size = players.size(); // first white, then black
     if(size>1) {
-		return false;
-    } else{
-		players.push_back(id);
-		return true;
+        return false;
+    } else {
+        players.push_back(id);
+        return true;
     }
 }
 
@@ -538,11 +538,11 @@ bool Entity::checkMoveBlackDame(int x1, int y1,int x2, int y2) {
 }
 
 
-bool Entity::checkMove(int x1, int y1,int x2, int y2) {
-    if (getCurrentPlayer()==1 && getSpotStatus(x1,y1)==1) return checkMoveWhite(x1,y1,x2,y2);
-    else if (getCurrentPlayer()==1 && getSpotStatus(x1,y1)==2) return checkMoveWhiteDame(x1,y1,x2,y2);
-    else if (getCurrentPlayer()==-1 && getSpotStatus(x1,y1)==-1) return checkMoveBlack(x1,y1,x2,y2);
-    else if (getCurrentPlayer()==-1 && getSpotStatus(x1,y1)==-2) return checkMoveBlackDame(x1,y1,x2,y2);
+bool Entity::checkMove(int x1, int y1,int x2, int y2, int playerID) {
+    if (getCurrentPlayer()==1 &&  playerID == players[0] && getSpotStatus(x1,y1)==1) return checkMoveWhite(x1,y1,x2,y2);
+    else if (getCurrentPlayer()== 1 && playerID == players[0] && getSpotStatus(x1,y1)==2) return checkMoveWhiteDame(x1,y1,x2,y2);
+    else if (getCurrentPlayer()==-1 &&  playerID == players[1]&&  getSpotStatus(x1,y1)==-1) return checkMoveBlack(x1,y1,x2,y2);
+    else if (getCurrentPlayer()==-1 &&  playerID == players[1] && getSpotStatus(x1,y1)==-2) return checkMoveBlackDame(x1,y1,x2,y2);
     else return false;
 
 }
