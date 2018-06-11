@@ -39,6 +39,15 @@ void ListenerServer::close() {
     shutdown( m_socket_, SHUT_RDWR );
 }
 void ListenerServer::listen(std::vector<Entity*>& rooms) {
+	
+	for(client& c : m_clients){
+		std::chrono::duration<double> elapsedSeconds =  std::chrono::system_clock::now()-c.lastRequest;
+		double time = elapsedSeconds.count();
+		if(time > 10 && c.active){
+			c.active = false;
+			std::cout<<"User with ID["<<c.id<<"] last request "<< time << "seconds ago! - Disconnecting!"<<std::endl;
+		}
+	}
 
 
     struct timeval read_timeout;
@@ -77,10 +86,9 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
         strcpy(m_resp, m_buffer);
         char buffer_ip[ 128 ] = { };
         strcpy(buffer_ip, inet_ntop( AF_INET, & m_client.sin_addr, buffer_ip, sizeof( buffer_ip )));
-        //printf( "|m_client ip: %s port: %d|\n", inet_ntop( AF_INET, & m_client.sin_addr, m_buffer_ip, sizeof( m_buffer_ip ) ), ntohs( m_client.sin_port ) );
-        // first two checks happen before room specific code
+        
         if(strncmp(m_buffer, "GET_SID",7) == 0) {
-            m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip)));
+            m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip), std::chrono::system_clock::now()));
             resp = std::to_string(m_clients.size());
 
             std::cout<<"m_client registered with ID:"<<m_clients.size()<<" IP: "<<std::string(buffer_ip)<<std::endl;
@@ -138,7 +146,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
             std::cout<<"SessionID("<<num<<") tries to join "<<tmp<<std::endl;
             Entity *e = nullptr;
             for(auto* it: rooms) {
-                // std::cout<<it->getName()<<std::endl;
+               
                 if(!tmp.compare(it->getName())) {
                     e=it;
                     break;
@@ -160,9 +168,15 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
 
         } else {
             if(strncmp(m_buffer, "GET_BOARD",9) == 0) {
+				
+			
                 str<<m_buffer;
                 str>>tmp;
                 str>>tmp;
+                int id;
+                str>>id;
+                
+                m_clients[id - 1].lastRequest = std::chrono::system_clock::now();
 
                 Entity *e = nullptr;
                 for(auto* it: rooms) {
@@ -218,7 +232,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
 
                     std::string tmp2(buffer_ip);
                     //std::cout<<"User with ID: "<<data[0]<<" IP: "<<tmp2<<" issued "<<tmp<<" "<<data[1]<<" "<<data[2]<<" "<<data[3]<<" "<<data[4]<<std::endl;
-                    if(!tmp2.compare(m_clients[data[0]-1].name)) {
+                    if(!tmp2.compare(m_clients[data[0]-1].name) && m_clients[data[0]-1].active) {
                         if (e->checkMove(data[1]-1,data[2]-1,data[3]-1,data[4]-1, data[0]) ) {
                             e->changeCurrentPlayer();
                             std::cout<<"Changing player.(ROOM: "<<tmp<<" )"<<std::endl;

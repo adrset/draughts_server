@@ -8,6 +8,8 @@
 #include <string.h> // memset()
 #include <arpa/inet.h> // inet_pton()
 #include <sys/socket.h>
+#include <chrono>
+#include <ctime>
 #include <vector>
 #include "Entity.h"
 namespace Network {
@@ -20,9 +22,11 @@ typedef struct data {
 } data;
 
 typedef struct client {
+	bool active;
     unsigned int id;
     std::string name;
-    client(unsigned int id, std::string name): id(id), name(name){};
+    std::chrono::time_point<std::chrono::system_clock> lastRequest;
+    client(unsigned int id, std::string name, std::chrono::time_point<std::chrono::system_clock> time, bool active = true): active(active),id(id), name(name), lastRequest(time){};
 } client;
 class ListenerServer {
     public:
