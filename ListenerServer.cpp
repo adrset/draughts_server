@@ -1,17 +1,17 @@
 #include "ListenerServer.h"
 #include <sstream>
 namespace Network {
-ListenerServer::ListenerServer() {
+ListenerServer::ListenerServer(std::string ip, int port) {
     m_server =
     {
         .sin_family = AF_INET,
-        .sin_port = htons( SERWER_PORT )
+        .sin_port = htons( port )
     };
     m_server.sin_addr.s_addr = INADDR_ANY;
     FD_ZERO(&m_master);
     FD_ZERO(&m_read_fds);
 
-    if( inet_pton( AF_INET, SERWER_IP, & m_server.sin_addr ) <= 0 )
+    if( inet_pton( AF_INET, ip.c_str(), & m_server.sin_addr ) <= 0 )
     {
         perror( "inet_pton() ERROR" );
         exit( 1 );
@@ -83,7 +83,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
             m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip)));
             resp = std::to_string(m_clients.size());
 
-            std::cout<<"m_client registered with ID:"<<m_clients.size()<<std::endl;
+            std::cout<<"m_client registered with ID:"<<m_clients.size()<<" IP: "<<std::string(buffer_ip)<<std::endl;
 
         } else if(strncmp(m_buffer, "CREATE_ROOM",11) == 0) {
 
@@ -238,10 +238,8 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
             perror( "sendto() ERROR" );
             exit( 5 );
         }
-        //return data(false, m_resp, strlen( m_resp ));
 
     }
-    //return data();
 
 }
 

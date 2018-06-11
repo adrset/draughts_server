@@ -2,7 +2,7 @@
 #define LISTENER_SERVER_H_
 
 #define SERWER_PORT 8888
-#define SERWER_IP "127.0.0.1"
+#define SERWER_IP "192.168.1.88"
 #include <stdio.h>
 #include <stdlib.h> // exit()
 #include <string.h> // memset()
@@ -26,11 +26,13 @@ typedef struct client {
 } client;
 class ListenerServer {
     public:
-        ListenerServer();
+        ListenerServer(std::string ip, int port);
         void listen(std::vector<Entity*>& rooms);
         void close();
 
     private:
+		std::string ip;
+		int port;
 		std::vector<client> m_clients;
         fd_set m_master;   // główna lista deskryptorów plików
         fd_set m_read_fds; // pomocnicza lista deskryptorów dla select()
