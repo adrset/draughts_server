@@ -39,15 +39,15 @@ void ListenerServer::close() {
     shutdown( m_socket_, SHUT_RDWR );
 }
 void ListenerServer::listen(std::vector<Entity*>& rooms) {
-	
-	for(client& c : m_clients){
-		std::chrono::duration<double> elapsedSeconds =  std::chrono::system_clock::now()-c.lastRequest;
-		double time = elapsedSeconds.count();
-		if(time > 10 && c.active){
-			c.active = false;
-			std::cout<<"User with ID["<<c.id<<"] last request "<< time << "seconds ago! - Disconnecting!"<<std::endl;
-		}
-	}
+
+    for(client& c : m_clients) {
+        std::chrono::duration<double> elapsedSeconds =  std::chrono::system_clock::now()-c.lastRequest;
+        double time = elapsedSeconds.count();
+        if(time > 10 && c.active) {
+            c.active = false;
+            std::cout<<"User with ID["<<c.id<<"] last request "<< time << "seconds ago! - Disconnecting!"<<std::endl;
+        }
+    }
 
 
     struct timeval read_timeout;
@@ -75,6 +75,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
     std::string resp;
     std::stringstream str;
     std::string tmp;
+    int a;
     //
 
     if (FD_ISSET(m_socket_, &m_read_fds)) {
@@ -86,12 +87,31 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
         strcpy(m_resp, m_buffer);
         char buffer_ip[ 128 ] = { };
         strcpy(buffer_ip, inet_ntop( AF_INET, & m_client.sin_addr, buffer_ip, sizeof( buffer_ip )));
-        
-        if(strncmp(m_buffer, "GET_SID",7) == 0) {
-            m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip), std::chrono::system_clock::now()));
-            resp = std::to_string(m_clients.size());
 
-            std::cout<<"m_client registered with ID:"<<m_clients.size()<<" IP: "<<std::string(buffer_ip)<<std::endl;
+        if(strncmp(m_buffer, "GET_SID",7) == 0) {
+            str<<m_buffer;
+            str>>tmp;
+            str>>a;
+
+            bool found = false;
+            for(client& c : m_clients) {
+                if(c.rand == a && std::string(buffer_ip) == c.ip) {
+                    found = true;
+                    a = c.id;
+                    break;
+                }
+            }
+            
+            if(!found) {
+                m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip), std::chrono::system_clock::now(), a, std::string(buffer_ip)));
+                resp = std::to_string(m_clients.size());
+                std::cout<<"m_client registered with ID:"<<m_clients.size()<<" IP: "<<std::string(buffer_ip)<<std::endl;
+            } else {
+				resp = std::to_string(a); // a was set to client id
+                std::cout<<"m_client retrying"<<std::endl;
+
+            }
+
 
         } else if(strncmp(m_buffer, "CREATE_ROOM",11) == 0) {
 
@@ -146,7 +166,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
             std::cout<<"SessionID("<<num<<") tries to join "<<tmp<<std::endl;
             Entity *e = nullptr;
             for(auto* it: rooms) {
-               
+
                 if(!tmp.compare(it->getName())) {
                     e=it;
                     break;
@@ -155,7 +175,8 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
             if(e != nullptr) {
                 bool test = e->addPlayer(num);
                 if(test) {
-                    resp = "OK";
+                    resp = "OK ";
+                    resp+= std::to_string(e->getPlayers());
                     std::cout<<"Adding player "<< num << " to room "<< tmp<< std::endl;
                 }
                 else {
@@ -168,14 +189,14 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
 
         } else {
             if(strncmp(m_buffer, "GET_BOARD",9) == 0) {
-				
-			
+
+
                 str<<m_buffer;
                 str>>tmp;
                 str>>tmp;
                 int id;
                 str>>id;
-                
+
                 m_clients[id - 1].lastRequest = std::chrono::system_clock::now();
 
                 Entity *e = nullptr;
@@ -191,16 +212,16 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
 
 
                     int** a = e->getBoardData();
-					if(e->scoreBoard()){
-                    for(int ii=0; ii<8; ii++) {
-                        for(int jj=0; jj<8; jj++) {
-                            resp+=std::to_string((unsigned int)(a[jj][ii]+2)) + ' ';
+                    if(e->scoreBoard()) {
+                        for(int ii=0; ii<8; ii++) {
+                            for(int jj=0; jj<8; jj++) {
+                                resp+=std::to_string((unsigned int)(a[jj][ii]+2)) + ' ';
+                            }
                         }
+                    } else {
+                        resp = "END";
+
                     }
-				}else{
-						resp = "END";
-					
-				}
 
                 } else {
                     resp = "NOK " + tmp;
@@ -238,9 +259,9 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
                             std::cout<<"Changing player.(ROOM: "<<tmp<<" )"<<std::endl;
 
                         }
-                    }else{
-						 std::cout<<"But is not allowed to play in this room."<<std::endl;
-					}
+                    } else {
+                        std::cout<<"But is not allowed to play in this room."<<std::endl;
+                    }
                 }
             }
         }

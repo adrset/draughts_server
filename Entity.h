@@ -23,6 +23,8 @@ class Entity {
         std::string getName() {
             return name;
         }
+        
+        unsigned int getPlayers() const { return players.size();}
         bool addPlayer(int id);
         int getDimension();
         int getSpotStatus(int, int);

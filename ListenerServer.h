@@ -22,11 +22,13 @@ typedef struct data {
 } data;
 
 typedef struct client {
+	std::string ip;
+	int rand;
 	bool active;
     unsigned int id;
     std::string name;
     std::chrono::time_point<std::chrono::system_clock> lastRequest;
-    client(unsigned int id, std::string name, std::chrono::time_point<std::chrono::system_clock> time, bool active = true): active(active),id(id), name(name), lastRequest(time){};
+    client(unsigned int id, std::string name, std::chrono::time_point<std::chrono::system_clock> time, int rand, std::string ip, bool active = true): ip(ip), rand(rand), active(active),id(id), name(name), lastRequest(time){};
 } client;
 class ListenerServer {
     public:
