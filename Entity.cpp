@@ -500,7 +500,7 @@ bool Entity::checkMoveBlack(int x1, int y1,int x2, int y2) {
                         setSpotStatus( (x2+(x2-x1)), y2+(y2-y1),getSpotStatus(x1,y1));
                         setSpotStatus(x1,y1,0);
                         setSpotStatus(x2,y2,0);
-                        if(! checkBeatingWhite(x2+(x2-x1),y2+(y2-y1))) {	//czy mozliwe jest wykonanie jeszcze dodatkowego bicia
+                        if(! checkBeatingBlack(x2+(x2-x1),y2+(y2-y1))) {	//czy mozliwe jest wykonanie jeszcze dodatkowego bicia
                             return true;
                         } else return false;
                     } else return false;

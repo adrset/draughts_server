@@ -104,7 +104,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
             }
             
             if(!found) {
-                m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip), std::chrono::system_clock::now(), a, std::string(buffer_ip)));
+                m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip), std::chrono::system_clock::now(), a, std::string(buffer_ip), tmp2));
                 resp = std::to_string(m_clients.size());
                 std::cout<<"m_client registered with ID:"<<m_clients.size()<<" IP: "<<std::string(buffer_ip)<<std::endl;
             } else {
@@ -239,7 +239,8 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
                     str>>data[i];
                 str>>tmp;
                 std::cout<<"Room: "<<tmp<<std::endl;
-
+				std::string pass;
+				str>>pass;
 
                 Entity *e = nullptr;
                 for(auto* it: rooms) {
@@ -255,7 +256,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
 
                     std::string tmp2(buffer_ip);
                     //std::cout<<"User with ID: "<<data[0]<<" IP: "<<tmp2<<" issued "<<tmp<<" "<<data[1]<<" "<<data[2]<<" "<<data[3]<<" "<<data[4]<<std::endl;
-                    if(!tmp2.compare(m_clients[data[0]-1].name) && m_clients[data[0]-1].active) {
+                    if(!tmp2.compare(m_clients[data[0]-1].name) && m_clients[data[0]-1].active && pass == m_clients[data[0]-1].pass ) {
                         if (e->checkMove(data[1]-1,data[2]-1,data[3]-1,data[4]-1, data[0]) ) {
                             e->changeCurrentPlayer();
                             std::cout<<"Changing player.(ROOM: "<<tmp<<" )"<<std::endl;
