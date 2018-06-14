@@ -74,7 +74,7 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
     // tmp variables
     std::string resp;
     std::stringstream str;
-    std::string tmp;
+    std::string tmp, tmp2;
     int a;
     //
 
@@ -92,7 +92,8 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
             str<<m_buffer;
             str>>tmp;
             str>>a;
-
+			str>>tmp2;
+			std::cout<<"Random string was: "<<tmp2<<std::endl;
             bool found = false;
             for(client& c : m_clients) {
                 if(c.rand == a && std::string(buffer_ip) == c.ip) {
@@ -217,7 +218,8 @@ void ListenerServer::listen(std::vector<Entity*>& rooms) {
                             for(int jj=0; jj<8; jj++) {
                                 resp+=std::to_string((unsigned int)(a[jj][ii]+2)) + ' ';
                             }
-                        }
+						}
+                        resp +=  std::to_string((-1*e->getCurrentPlayer() + 1) / 2 + 1);
                     } else {
                         resp = "END";
 
