@@ -18,11 +18,7 @@ int main(int argc, char** argv)
     //Entity* room = new Entity();
     std::vector<Entity*> rooms;
 
-    while(1) {
-
-        /*data d = */server->listen(rooms);
-
-    }
+    while(server->listen(rooms) != -1) {}
     delete server;
 
 	return 0;

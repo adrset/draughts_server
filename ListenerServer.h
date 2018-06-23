@@ -29,12 +29,14 @@ typedef struct client {
     std::string pass;
     std::string name;
     std::chrono::time_point<std::chrono::system_clock> lastRequest;
-    client(unsigned int id, std::string name, std::chrono::time_point<std::chrono::system_clock> time, int rand, std::string ip, std::string pass, bool active = true): ip(ip), rand(rand), active(active),id(id), pass(pass), name(name), lastRequest(time){};
+    client(unsigned int id, std::string name, std::chrono::time_point<std::chrono::system_clock> time,
+     int rand, std::string ip, std::string pass, bool active = true):
+      ip(ip), rand(rand), active(active),id(id), pass(pass), name(name), lastRequest(time){};
 } client;
 class ListenerServer {
     public:
         ListenerServer(std::string ip, int port);
-        void listen(std::vector<Entity*>& rooms);
+        int listen(std::vector<Entity*>& rooms);
         void close();
 
     private:
@@ -43,6 +45,7 @@ class ListenerServer {
 		std::vector<client> m_clients;
         fd_set m_master;   // główna lista deskryptorów plików
         fd_set m_read_fds; // pomocnicza lista deskryptorów dla select()
+        fd_set m_inputR, m_inputW, m_inputE;
         struct sockaddr_in m_server;
         int m_socket_;
         int m_activity;
