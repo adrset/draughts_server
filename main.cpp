@@ -15,10 +15,8 @@ int main(int argc, char** argv)
 	std::string ip(argv[1]);
 	int port = std::atoi(argv[2]);
     ListenerServer* server = new ListenerServer(ip, port);
-    //Entity* room = new Entity();
-    std::vector<Entity*> rooms;
 
-    while(server->listen(rooms) != -1) {}
+    while(server->listen() != -1) {}
     delete server;
 
 	return 0;

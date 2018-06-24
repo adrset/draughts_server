@@ -36,10 +36,17 @@ typedef struct client {
 class ListenerServer {
     public:
         ListenerServer(std::string ip, int port);
-        int listen(std::vector<Entity*>& rooms);
+        int listen();
         void close();
 
     private:
+		Entity* findRoom(std::string room);
+        std::vector<Entity*> m_rooms;
+		int processConsoleInput();
+		void processClients();
+		struct timeval m_readTimeout;
+	
+		bool addRoom(std::string name);
 		std::string ip;
 		int port;
 		std::vector<client> m_clients;

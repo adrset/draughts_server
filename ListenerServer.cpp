@@ -8,9 +8,13 @@ ListenerServer::ListenerServer(std::string ip, int port) {
         .sin_port = htons( port )
     };
     m_server.sin_addr.s_addr = INADDR_ANY;
+
     FD_ZERO(&m_master);
     FD_ZERO(&m_read_fds);
     FD_ZERO(&m_inputR);
+
+    m_readTimeout.tv_sec = 0;
+    m_readTimeout.tv_usec = 10;
 
     if( inet_pton( AF_INET, ip.c_str(), & m_server.sin_addr ) <= 0 )
     {
@@ -19,12 +23,12 @@ ListenerServer::ListenerServer(std::string ip, int port) {
     }
 
     m_socket_ = socket( AF_INET, SOCK_DGRAM, 0 );
+
     if(( m_socket_ ) < 0 )
     {
         perror( "m_socket() ERROR" );
         exit( 2 );
     }
-
 
     m_len = sizeof( m_server );
     if( bind( m_socket_,( struct sockaddr * ) & m_server, m_len ) < 0 )
@@ -35,12 +39,48 @@ ListenerServer::ListenerServer(std::string ip, int port) {
 
 }
 
-void ListenerServer::close() {
+Entity* ListenerServer::findRoom(std::string room) {
 
+    for(auto* it: m_rooms) {
+        if(!room.compare(it->getName())) {
+            return it;
+        }
+    }
+
+    return nullptr;
+
+
+}
+
+bool ListenerServer::addRoom(std::string room) {
+
+    // Determine if room exists
+    Entity* find = findRoom(room);
+
+    if(find != nullptr) {
+
+        std::cout<<"Could not create room: "<<room<<" "<<m_rooms.size()<<std::endl;
+        return false;
+    } else {
+        m_rooms.push_back(new Entity(room));
+        std::cout<<"Creating room: "<<room<<" "<<m_rooms.size()<<std::endl;
+
+        return true;
+
+
+    }
+
+
+
+
+}
+
+void ListenerServer::close() {
     shutdown( m_socket_, SHUT_RDWR );
 }
-int ListenerServer::listen(std::vector<Entity*>& rooms) {
-    int ret = 0;
+
+void ListenerServer::processClients() {
+
     for(client& c : m_clients) {
         std::chrono::duration<double> elapsedSeconds =  std::chrono::system_clock::now()-c.lastRequest;
         double time = elapsedSeconds.count();
@@ -49,21 +89,10 @@ int ListenerServer::listen(std::vector<Entity*>& rooms) {
             std::cout<<"User with ID["<<c.id<<"] last request "<< time << "seconds ago! - Disconnecting!"<<std::endl;
         }
     }
+}
 
+int ListenerServer::processConsoleInput() {
 
-    struct timeval read_timeout;
-    read_timeout.tv_sec = 0;
-    read_timeout.tv_usec = 10;
-
-    FD_ZERO(&m_inputR);
-    FD_ZERO(&m_read_fds);
-    FD_SET(fileno(stdin), &m_inputR);
-    FD_SET(m_socket_, &m_read_fds);
-    //FD_SET( fileno( stdin), &m_read_fds);
-    m_client = { };
-
-    memset( m_buffer, 0, sizeof( m_buffer ) );
-    select( fileno(stdin) + 1, &m_inputR, NULL, NULL, &read_timeout);
     if (FD_ISSET(fileno(stdin), &m_inputR)) {
         std::string msg;
         std::getline(std::cin, msg);
@@ -74,25 +103,56 @@ int ListenerServer::listen(std::vector<Entity*>& rooms) {
             std::cout<<"Draughts server commands:"<<std::endl;
             std::cout<<"stop - stops the server"<<std::endl;
             std::cout<<"list - lists clients and rooms"<<std::endl;
+            std::cout<<"create <room> - create room"<<std::endl;
+            std::cout<<"delete <room> - delete room"<<std::endl;
+        } else if(msg.compare(0, 7, "create ") == 0 && msg.size()> 7) {
+			std::stringstream str;
+			str<<msg;
+			std::string room;
+			str>>room;
+			str>>room;
+			addRoom(room);
+            
         } else if(msg.compare(0, 4, "list") == 0) {
             std::cout<<"Users"<<std::endl;
 
             for(client& c : m_clients) {
-				std::string t = c.active == true ? "\tactive" : "\tinactive";
+                std::string t = c.active == true ? "\tactive" : "\tinactive";
                 std::cout<<"\tID ["<<c.id<<"]\t"<<c.pass<<"\t"<<c.name<< t <<std::endl;
-
             }
+            
             std::cout<<"Rooms"<<std::endl;
 
-            for(auto* it: rooms) {
-
+            for(auto* it: m_rooms) {
                 std::cout<<"\t"<<it->getName()<<std::endl;
             }
 
 
         }
     }
-    m_activity = select( m_socket_ + 1, &m_read_fds, NULL, NULL, &read_timeout);
+    return 0;
+
+}
+
+int ListenerServer::listen() {
+    int ret = 0;
+
+    processClients();
+
+    if(processConsoleInput() == -1) return -1;
+
+    FD_ZERO(&m_inputR);
+    FD_ZERO(&m_read_fds);
+
+    FD_SET(fileno(stdin), &m_inputR);
+    FD_SET(m_socket_, &m_read_fds);
+
+    m_client = { };
+
+    memset( m_buffer, 0, sizeof( m_buffer ) );
+    select( fileno(stdin) + 1, &m_inputR, NULL, NULL, &m_readTimeout);
+
+    m_activity = select( m_socket_ + 1, &m_read_fds, NULL, NULL, &m_readTimeout);
 
     if ((m_activity < 0))
     {
@@ -149,40 +209,19 @@ int ListenerServer::listen(std::vector<Entity*>& rooms) {
             str>>tmp;
             str>>tmp;
 
-            bool isGood = true;
-            for(auto* it: rooms) {
-                if(!tmp.compare(it->getName())) {
-                    isGood = false;
-                    break;
-                }
-
-
-            }
-
-
-            if(isGood) {
-                rooms.push_back(new Entity(tmp));
-                std::cout<<"Creating room: "<<tmp<<" "<<rooms.size()<<std::endl;
-
-                resp = "OK " + tmp;
-            } else {
-                resp = "NOK " + tmp;
-                std::cout<<"Could not create room: "<<tmp<<std::endl;
-
-            }
-
+            resp = addRoom(tmp) ? "OK " + tmp : "NOK " + tmp;
 
         }
         else if(strncmp(m_buffer, "GET_ROOMS",9) == 0) {
 
 
             resp = "Rooms:\n";
-            for(auto* it: rooms) {
+            for(auto* it: m_rooms) {
                 resp += it->getName() + "\n";
             }
 
 
-        }  else if(rooms.size() == 0) {
+        }  else if(m_rooms.size() == 0) {
 
             resp = "No rooms!";
 
@@ -193,14 +232,8 @@ int ListenerServer::listen(std::vector<Entity*>& rooms) {
             str>>tmp;
             str>>num;
             std::cout<<"SessionID("<<num<<") tries to join "<<tmp<<std::endl;
-            Entity *e = nullptr;
-            for(auto* it: rooms) {
+            Entity *e = findRoom(tmp);
 
-                if(!tmp.compare(it->getName())) {
-                    e=it;
-                    break;
-                }
-            }
             if(e != nullptr) {
                 bool test = e->addPlayer(num);
                 if(test) {
@@ -228,14 +261,7 @@ int ListenerServer::listen(std::vector<Entity*>& rooms) {
 
                 m_clients[id - 1].lastRequest = std::chrono::system_clock::now();
 
-                Entity *e = nullptr;
-                for(auto* it: rooms) {
-                    if(!tmp.compare(it->getName())) {
-                        e=it;
-                        break;
-                    }
-                }
-
+                Entity *e = findRoom(tmp);
 
                 if(e != nullptr) {
 
@@ -270,20 +296,11 @@ int ListenerServer::listen(std::vector<Entity*>& rooms) {
                 std::string pass;
                 str>>pass;
 
-                Entity *e = nullptr;
-                for(auto* it: rooms) {
-                    if(!tmp.compare(it->getName())) {
-                        e=it;
-                        break;
-                    }
-                }
-
+                Entity *e = findRoom(tmp);
 
                 if(e != nullptr) {
 
-
                     std::string tmp2(buffer_ip);
-                    //std::cout<<"User with ID: "<<data[0]<<" IP: "<<tmp2<<" issued "<<tmp<<" "<<data[1]<<" "<<data[2]<<" "<<data[3]<<" "<<data[4]<<std::endl;
                     if(!tmp2.compare(m_clients[data[0]-1].name) && m_clients[data[0]-1].active && pass == m_clients[data[0]-1].pass ) {
                         if (e->checkMove(data[1]-1,data[2]-1,data[3]-1,data[4]-1, data[0]) ) {
                             e->changeCurrentPlayer();
