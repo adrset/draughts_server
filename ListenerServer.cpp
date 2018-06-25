@@ -36,7 +36,8 @@ ListenerServer::ListenerServer(std::string ip, int port) {
         perror( "bind() ERROR" );
         exit( 3 );
     }
-
+    
+    std::cout<<"Starting server..." << std::endl << "Listening on interface " << ip << " port "<< port<<std::endl;
 }
 
 Entity* ListenerServer::findRoom(std::string room) {
@@ -59,11 +60,11 @@ bool ListenerServer::addRoom(std::string room) {
 
     if(find != nullptr) {
 
-        std::cout<<"Could not create room: "<<room<<" "<<m_rooms.size()<<std::endl;
+        std::cout<<"[ Rooms ] Could not create room: "<<room<<" "<<m_rooms.size()<<std::endl;
         return false;
     } else {
         m_rooms.push_back(new Entity(room));
-        std::cout<<"Creating room: "<<room<<" "<<m_rooms.size()<<std::endl;
+        std::cout<<"[ Rooms ] Creating room: "<<room<<" "<<m_rooms.size()<<std::endl;
 
         return true;
 
@@ -86,25 +87,24 @@ void ListenerServer::processClients() {
         double time = elapsedSeconds.count();
         if(time > 10 && c.active) {
             c.active = false;
-            std::cout<<"User with ID["<<c.id<<"] last request "<< time << "seconds ago! - Disconnecting!"<<std::endl;
+            std::cout<<"[ Timeout ]User with ID["<<c.id<<"] last request "<< time << "seconds ago! - Disconnecting!"<<std::endl;
         }
     }
 }
 
 int ListenerServer::processConsoleInput() {
-
     if (FD_ISSET(fileno(stdin), &m_inputR)) {
         std::string msg;
         std::getline(std::cin, msg);
-        if(msg.compare(0, 4, "stop") == 0) {
+        if(msg.compare(0, 4, "stop") == 0 || msg.compare(0, 4, "exit") == 0 ) {
             std::cout<<"Stopping server!"<<std::endl;
             return -1;
         } else if(msg.compare(0, 4, "help") == 0) {
             std::cout<<"Draughts server commands:"<<std::endl;
-            std::cout<<"stop - stops the server"<<std::endl;
-            std::cout<<"list - lists clients and rooms"<<std::endl;
-            std::cout<<"create <room> - create room"<<std::endl;
-            std::cout<<"delete <room> - delete room"<<std::endl;
+            std::cout<<"\tstop - stops the server"<<std::endl;
+            std::cout<<"\tlist - lists clients and rooms"<<std::endl;
+            std::cout<<"\tcreate <room> - create room"<<std::endl;
+            std::cout<<"\tdelete <room> - delete room"<<std::endl;
         } else if(msg.compare(0, 7, "create ") == 0 && msg.size()> 7) {
 			std::stringstream str;
 			str<<msg;
@@ -114,21 +114,25 @@ int ListenerServer::processConsoleInput() {
 			addRoom(room);
             
         } else if(msg.compare(0, 4, "list") == 0) {
-            std::cout<<"Users"<<std::endl;
+            std::cout<<"Users [ "<<m_clients.size()<<" ]"<<std::endl;
 
             for(client& c : m_clients) {
                 std::string t = c.active == true ? "\tactive" : "\tinactive";
                 std::cout<<"\tID ["<<c.id<<"]\t"<<c.pass<<"\t"<<c.name<< t <<std::endl;
             }
             
-            std::cout<<"Rooms"<<std::endl;
+            std::cout<<"Rooms [ "<<m_rooms.size()<<" ]"<<std::endl;
 
             for(auto* it: m_rooms) {
                 std::cout<<"\t"<<it->getName()<<std::endl;
             }
 
 
-        }
+        }else{
+			std::cout<<"Unknown command!"<<std::endl;
+			std::cout<<"Type 'help' for a list of commands."<<std::endl;
+		}
+
     }
     return 0;
 
@@ -181,7 +185,6 @@ int ListenerServer::listen() {
             str>>tmp;
             str>>a;
             str>>tmp2;
-            std::cout<<"Random string was: "<<tmp2<<std::endl;
             bool found = false;
             for(client& c : m_clients) {
                 if(c.rand == a && std::string(buffer_ip) == c.ip) {
@@ -194,10 +197,10 @@ int ListenerServer::listen() {
             if(!found) {
                 m_clients.push_back(client(m_clients.size()+1, std::string(buffer_ip), std::chrono::system_clock::now(), a, std::string(buffer_ip), tmp2));
                 resp = std::to_string(m_clients.size());
-                std::cout<<"m_client registered with ID:"<<m_clients.size()<<" IP: "<<std::string(buffer_ip)<<std::endl;
+                std::cout<<"[ Register ] client registered with ID [ "<<m_clients.size()<<" ] IP [ "<<std::string(buffer_ip)<<" ]"<<std::endl;
             } else {
                 resp = std::to_string(a); // a was set to client id
-                std::cout<<"m_client retrying"<<std::endl;
+                std::cout<<"[ Register ] retrying"<<std::endl;
 
             }
 
@@ -231,7 +234,7 @@ int ListenerServer::listen() {
             str>>tmp;
             str>>tmp;
             str>>num;
-            std::cout<<"SessionID("<<num<<") tries to join "<<tmp<<std::endl;
+            std::cout<<"[ Rooms ]( Room: "<< tmp << " ) User ID [ "<<num<<" ] tries to join"<<std::endl;
             Entity *e = findRoom(tmp);
 
             if(e != nullptr) {
@@ -239,10 +242,12 @@ int ListenerServer::listen() {
                 if(test) {
                     resp = "OK ";
                     resp+= std::to_string(e->getPlayers());
-                    std::cout<<"Adding player "<< num << " to room "<< tmp<< std::endl;
+                    std::cout<<"[ Rooms ]( Room: "<< tmp << " ) Adding player with ID [ "<< num << " ]" << std::endl;
                 }
                 else {
                     resp = "NOK";
+                    std::cout<<"[ Rooms ]( Room: "<< tmp << " ) player with ID [ "<< num << " ] not added." << std::endl;
+
                 }
             } else {
                 resp = "NOK";
